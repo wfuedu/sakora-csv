@@ -3,5 +3,5 @@ jdk:
   - openjdk6
   
 # build the trunk
-script: "cd trunk"
-script: "mvn clean install"
+before_script: cd trunk
+script: mvn clean install
