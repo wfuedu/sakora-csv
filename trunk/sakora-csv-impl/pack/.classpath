@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+  <classpathentry kind="output" path="target/classes"/>
+  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+  <classpathentry kind="src" path="/sakai-sakora-csv-impl"/>
+  <classpathentry kind="var" path="M2_REPO/org/sakaiproject/generic-dao/0.9.18/generic-dao-0.9.18.jar" sourcepath="M2_REPO/org/sakaiproject/generic-dao/0.9.18/generic-dao-0.9.18-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/C:/Users/zhuy/.m2/repository/org/sakaiproject/generic-dao/0.9.18/generic-dao-0.9.18-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/org/azeckoski/reflectutils/0.9.14/reflectutils-0.9.14.jar" sourcepath="M2_REPO/org/azeckoski/reflectutils/0.9.14/reflectutils-0.9.14-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/C:/Users/zhuy/.m2/repository/org/azeckoski/reflectutils/0.9.14/reflectutils-0.9.14-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/net/sf/opencsv/opencsv/1.8/opencsv-1.8.jar" sourcepath="M2_REPO/net/sf/opencsv/opencsv/1.8/opencsv-1.8-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/junit/junit/3.8.1/junit-3.8.1.jar" sourcepath="M2_REPO/junit/junit/3.8.1/junit-3.8.1-sources.jar"/>
+</classpath>

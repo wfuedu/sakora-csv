@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Sakai Foundation under one or more contributor
+  license agreements. See the NOTICE file distributed with this
+  work for additional information regarding copyright ownership.
+  The Sakai Foundation licenses this file to you under the Apache
+  License, Version 2.0 (the "License"); you may not use this file
+  except in compliance with the License. You may obtain a copy of
+  the License at:
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on
+  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied. See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+						http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+						http://www.springframework.org/schema/util
+    					http://www.springframework.org/schema/util/spring-util-2.0.xsd">
+
+	<bean id="net.unicon.sakora.impl.jobs.DataLoaderJobBean.wrapper.base"
+		class="org.sakaiproject.component.app.scheduler.jobs.SpringStatefulJobBeanWrapper"
+		abstract="true" init-method="init">
+		<property name="schedulerManager">
+			<ref bean="org.sakaiproject.api.app.scheduler.SchedulerManager" />
+		</property>
+	</bean>
+
+	<bean id="net.unicon.sakora.api.csv.CsvSyncService" 
+		class="net.unicon.sakora.impl.csv.CsvSyncServiceImpl"
+		lazy-init="false"
+		init-method="init"
+		destroy-method="destroy">
+		<property name="cleanupData" value="true"/>
+		<property name="accademicSessionHandler" ref="net.unicon.sakora.impl.csv.CsvAcademicSessionHandler"/>
+		<property name="canonicalCourseHandler" ref="net.unicon.sakora.impl.csv.CsvCanonicalCourseHandler"/>
+		<property name="courseOfferingHandler" ref="net.unicon.sakora.impl.csv.CsvCourseOfferingHandler"/>
+		<property name="courseSetHandler" ref="net.unicon.sakora.impl.csv.CsvCourseSetHandler"/>
+		<property name="enrollmentSetHandler" ref="net.unicon.sakora.impl.csv.CsvEnrollmentSetHandler"/>
+		<property name="courseMembershipHandler" ref="net.unicon.sakora.impl.csv.CsvCourseMembershipHandler"/>
+		<property name="sectionMembershipHandler" ref="net.unicon.sakora.impl.csv.CsvSectionMembershipHandler"/>
+		<property name="personHandler" ref="net.unicon.sakora.impl.csv.CsvPersonHandler"/>
+		<property name="sectionHandler" ref="net.unicon.sakora.impl.csv.CsvSectionHandler"/>
+		<property name="sectionMeetingHandler" ref="net.unicon.sakora.impl.csv.CsvSectionMeetingHandler"/>
+		<property name="configurationService" ref="org.sakaiproject.component.api.ServerConfigurationService"/>
+		<property name="dbLog" ref="net.unicon.sakora.impl.csv.dao.CsvSyncDao" />
+        <property name="commonHandlerService" ref="net.unicon.sakora.impl.csv.CsvCommonHandlerService" />
+	</bean>
+
+
+  <!-- DAO and transaction proxy for tracking delta between data loads -->
+  <bean id="net.unicon.sakora.impl.csv.dao.CsvSyncTarget" 
+        class="net.unicon.sakora.impl.csv.dao.CsvSyncDaoImpl">
+    <property name="sessionFactory" ref="org.sakaiproject.springframework.orm.hibernate.GlobalSessionFactory" />
+    <property name="persistentClasses">
+      <list>
+        <value>net.unicon.sakora.api.csv.model.Membership</value>
+        <value>net.unicon.sakora.api.csv.model.Person</value>
+        <value>net.unicon.sakora.api.csv.model.SakoraLog</value>
+        <value>net.unicon.sakora.api.csv.model.Session</value>
+      </list>
+    </property>
+  </bean>
+
+  <bean id="net.unicon.sakora.impl.csv.dao.CsvSyncDao" 
+        class="org.sakaiproject.genericdao.springutil.CurrentClassLoaderTxProxyFactoryBean">
+    <property name="transactionManager" ref="org.sakaiproject.springframework.orm.hibernate.GlobalTransactionManager" />
+    <property name="target" ref="net.unicon.sakora.impl.csv.dao.CsvSyncTarget" />
+    <property name="transactionAttributes">
+      <props>
+        <prop key="*">PROPAGATION_REQUIRED</prop>
+      </props>
+    </property>
+  </bean>
+
+  <bean id="org.sakaiproject.sakora.api.model.hibernate.AdditionalHibernateMappings" 
+        class="org.sakaiproject.springframework.orm.hibernate.impl.AdditionalHibernateMappingsImpl">
+    <property name="mappingResources">
+      <list>
+        <value>net/unicon/sakora/api/csv/model/Membership.hbm.xml</value>
+        <value>net/unicon/sakora/api/csv/model/Person.hbm.xml</value>
+        <value>net/unicon/sakora/api/csv/model/SakoraLog.hbm.xml</value>
+        <value>net/unicon/sakora/api/csv/model/Session.hbm.xml</value>
+      </list>
+    </property>
+  </bean>
+
+
+	<bean id="net.unicon.sakora.impl.csv.dao.CsvIndexGenerator"
+		class="net.unicon.sakora.impl.csv.dao.CsvIndexGenerator"
+		init-method="init" destroy-method="destroy">
+		<property name="sqlService" ref="org.sakaiproject.db.api.SqlService"/>
+		<property name="serverConfigurationService" ref="org.sakaiproject.component.api.ServerConfigurationService" />
+	</bean>
+
+    <bean id="net.unicon.sakora.impl.csv.CsvCommonHandlerService" 
+            class="net.unicon.sakora.impl.csv.CsvCommonHandlerService"
+            init-method="init" destroy-method="destroy">
+        <property name="configurationService">
+            <ref bean="org.sakaiproject.component.api.ServerConfigurationService"/>
+        </property>
+        <property name="cmAdmin">
+            <ref bean="org.sakaiproject.coursemanagement.api.CourseManagementAdministration" />
+        </property>
+        <property name="cmService">
+            <ref bean="org.sakaiproject.coursemanagement.api.CourseManagementService" />
+        </property>
+    </bean>
+
+	<bean id="net.unicon.sakora.impl.csv.CsvHandlerBase" 
+		abstract="true"
+		init-method="init"
+		destroy-method="destroy">
+		<property name="cmAdmin">
+			<ref bean="org.sakaiproject.coursemanagement.api.CourseManagementAdministration" />
+		</property>
+		<property name="cmService">
+			<ref bean="org.sakaiproject.coursemanagement.api.CourseManagementService" />
+		</property>
+		<property name="userDirService">
+			<ref bean="org.sakaiproject.user.api.UserDirectoryService" />
+		</property>
+		<property name="sessionManager">
+			<ref bean="org.sakaiproject.tool.api.SessionManager" />
+		</property>
+		<property name="usageSessionService">
+			<ref bean="org.sakaiproject.event.api.UsageSessionService" />
+		</property>
+		<property name="contentHostingService">
+			<ref bean="org.sakaiproject.content.api.ContentHostingService" />
+		</property>
+		<property name="authzGroupService">
+			<ref bean="org.sakaiproject.authz.api.AuthzGroupService" />
+		</property>
+		<property name="eventTrackingService">
+			<ref bean="org.sakaiproject.event.api.EventTrackingService" />
+		</property>
+		<property name="configurationService">
+			<ref bean="org.sakaiproject.component.api.ServerConfigurationService"/>
+		</property>
+        <property name="commonHandlerService" ref="net.unicon.sakora.impl.csv.CsvCommonHandlerService" />
+		<property name="searchPageSize" value="1000" />
+		<property name="dao" ref="net.unicon.sakora.impl.csv.dao.CsvSyncDao" />
+		<property name="hasHeader" value="true" />
+	</bean>
+
+	<bean id="net.unicon.sakora.impl.csv.CsvAcademicSessionHandler"
+		class="net.unicon.sakora.impl.csv.CsvAcademicSessionHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="csvFileName" value="sessions.csv" />
+	</bean>
+
+	<bean id="net.unicon.sakora.impl.csv.CsvCanonicalCourseHandler"
+		class="net.unicon.sakora.impl.csv.CsvCanonicalCourseHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="csvFileName" value="courses.csv" />
+	</bean>
+
+	<bean id="net.unicon.sakora.impl.csv.CsvCourseSetHandler"
+		class="net.unicon.sakora.impl.csv.CsvCourseSetHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="csvFileName" value="courseSets.csv" />
+	</bean>
+
+	<bean id="net.unicon.sakora.impl.csv.CsvCourseOfferingHandler"
+		class="net.unicon.sakora.impl.csv.CsvCourseOfferingHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="csvFileName" value="courseOfferings.csv" />
+	</bean>
+
+	<bean id="net.unicon.sakora.impl.csv.CsvEnrollmentSetHandler"
+		class="net.unicon.sakora.impl.csv.CsvEnrollmentSetHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="csvFileName" value="enrollmentSets.csv" />
+	</bean>
+<!-- 
+	<bean id="net.unicon.sakora.impl.csv.CsvInstructorHandler"
+		class="net.unicon.sakora.impl.csv.CsvInstructorHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+	</bean>
+-->
+	<bean id="net.unicon.sakora.impl.csv.CsvSectionHandler"
+		class="net.unicon.sakora.impl.csv.CsvSectionHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="csvFileName" value="courseSections.csv" />
+		<property name="sectionCategoryMap" ref="net.unicon.sakora.impl.csv.CsvSectionHandler.sectionCategoryMap" />
+	</bean>
+	
+	<util:map id="net.unicon.sakora.impl.csv.CsvSectionHandler.sectionCategoryMap">
+		<entry key="NONE" value="Uncategorized" />
+	</util:map>
+
+	<bean id="net.unicon.sakora.impl.csv.CsvSectionMeetingHandler"
+		class="net.unicon.sakora.impl.csv.CsvSectionMeetingHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="csvFileName" value="sectionMeetings.csv" />
+	</bean>
+
+	<bean id="net.unicon.sakora.impl.csv.CsvPersonHandler"
+		class="net.unicon.sakora.impl.csv.CsvPersonHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="idManager" ref="org.sakaiproject.id.api.IdManager" />
+		<property name="suspended" value="suspended" />
+		<property name="csvFileName" value="people.csv" />
+	</bean>
+
+	<bean id="net.unicon.sakora.impl.csv.CsvSectionMembershipHandler"
+		class="net.unicon.sakora.impl.csv.CsvMembershipHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="defaultCredits" value="0" />
+		<property name="defaultGradingScheme" value="LetterGrade" />
+		<!-- custom section roles? -->
+		<property name="taRole" value="GSI" />
+		<property name="studentRole" value="S" />
+		<property name="instructorRole" value="I" />
+		<property name="mode" value="section" />
+		<property name="csvFileName" value="sectionMembership.csv" />
+	</bean>
+	
+	<bean id="net.unicon.sakora.impl.csv.CsvCourseMembershipHandler"
+		class="net.unicon.sakora.impl.csv.CsvMembershipHandler"
+		parent="net.unicon.sakora.impl.csv.CsvHandlerBase"
+		init-method="init">
+		<property name="defaultCredits" value="0" />
+		<property name="defaultGradingScheme" value="LetterGrade" />
+		<!-- custom course roles? -->
+		<property name="taRole" value="GSI" />
+		<property name="studentRole" value="S" />
+		<property name="instructorRole" value="I" />
+		<property name="mode" value="course" />
+		<property name="csvFileName" value="courseMembership.csv" />
+	</bean>
+
+	<bean id="net.unicon.sakora.impl.jobs.DataLoaderJobBean.csv"
+		class="net.unicon.sakora.impl.jobs.CsvLoaderJobBean">
+		<!-- scope="singleton"> -->
+		<property name="csvSyncService">
+			<ref bean="net.unicon.sakora.api.csv.CsvSyncService" />
+		</property>
+	</bean>
+	
+	<!-- this is the helper that will register the above bean with the schedule manager
+		things to set here are the beanId (from bean above) and the jobName
+	-->
+	<bean
+		id="net.unicon.sakora.impl.jobs.DataLoaderJobBean.wrapper.csv"
+		parent="net.unicon.sakora.impl.jobs.DataLoaderJobBean.wrapper.base">
+		<property name="beanId">
+			<value>net.unicon.sakora.impl.jobs.DataLoaderJobBean.csv</value>
+		</property>
+		<property name="jobName" ref="net.unicon.sakora.impl.jobs.DataLoaderJobBean.csv.jobName">
+		</property>
+	</bean>
+	
+	<bean id="net.unicon.sakora.impl.jobs.DataLoaderJobBean.csv.jobName"
+		class="java.lang.String" lazy-init="true">
+	    <constructor-arg value="SIS CSV Data Loader" type="java.lang.String" />
+	</bean>
+</beans>
