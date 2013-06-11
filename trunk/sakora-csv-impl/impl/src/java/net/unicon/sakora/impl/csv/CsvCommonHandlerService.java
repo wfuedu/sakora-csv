@@ -80,6 +80,7 @@ public class CsvCommonHandlerService {
     private static final String IGNORE_MEMBERSHIP_REMOVALS = "ignoreMembershipRemovals";
     private static final String IGNORE_MISSING_SESSIONS = "ignoreMissingSessions";
     private static final String USER_REMOVAL_MODE = "userRemoveMode";
+    private static final String DELETE_MODE = "deleteMode";
 
 
     protected ServerConfigurationService configurationService;
@@ -143,6 +144,11 @@ public class CsvCommonHandlerService {
             String urm = context.getProperties().get(USER_REMOVAL_MODE);
             overrideUserRemoveMode(urm);
             log.info("SakoraCSV sync run ("+runId+") overriding "+USER_REMOVAL_MODE+": "+urm);
+        }
+        if (context.getProperties().containsKey(DELETE_MODE)) {
+            Boolean dm = Boolean.parseBoolean(context.getProperties().get(DELETE_MODE));
+            overrideDeleteMode(dm);
+            log.info("SakoraCSV sync run ("+runId+") overriding "+DELETE_MODE+": "+dm);
         }
         return runId;
     }
@@ -356,7 +362,7 @@ public class CsvCommonHandlerService {
         } else {
             log.warn("SakoraCSV userRemoveMode override ("+urm+") is invalid: ignoring the override, must match one of these: "+ArrayUtils.toString(URM_VALIDS));
         }
-    }
+    }    
     public String userRemoveMode() {
         String urm = getCurrentSyncVar(USER_REMOVAL_MODE, String.class);
         if (urm != null) {
@@ -581,6 +587,34 @@ public class CsvCommonHandlerService {
 
     public void setCmService(CourseManagementService cmService) {
         this.cmService = cmService;
+    }
+    
+    
+    /**
+     * Delete mode handling:
+     * If the flag is set then all data will be used to handle deletion
+     */
+    protected boolean deleteMode = false;
+    public void setDeleteMode(boolean deleteMode) {
+        this.deleteMode = deleteMode;
+    }
+    public boolean isDeleteMode() {
+        return this.deleteMode;
+    }
+
+    public void overrideDeleteMode(Boolean dm) {
+        setCurrentSyncVar(DELETE_MODE, dm);
+        if (dm != null) {
+            log.info("Overriding the deletemode value of "+deleteMode+" with "+dm.booleanValue()+" for current sync: "+getCurrentSyncRunId());
+        }
+    }
+    public boolean deleteMode() {
+        Boolean dm = getCurrentSyncVar(DELETE_MODE, Boolean.class);
+        if (dm != null) {
+            // override from the current run
+            return dm.booleanValue();
+        }
+        return this.deleteMode;
     }
 
 }

@@ -225,17 +225,36 @@ public class CsvSyncServiceImpl implements CsvSyncService {
 		running = true;
 		commonHandlerService.initRun(context);
 		try {
-    		handleAction(accademicSessionHandler, "Sessions", context);
-    		handleAction(courseSetHandler, "Course Sets", context);
-    		handleAction(canonicalCourseHandler, "Canonical Courses", context);
-    		handleAction(courseOfferingHandler, "Course Offerings", context);
-    		handleAction(enrollmentSetHandler, "Enrollment Sets", context);
-    		handleAction(sectionHandler, "Sections", context);
-    		handleAction(sectionMeetingHandler, "Section Meetings", context);
-    		handleAction(personHandler, "Users", context);
-    		handleAction(courseMembershipHandler, "Course Membership", context);
-    		context.getProperties().put(IS_FINAL_ACTION, "true");
-    		handleAction(sectionMembershipHandler, "Section Membership", context);
+			//process in reverse order in delete mode
+			if(commonHandlerService.deleteMode()){
+	    		handleAction(sectionMembershipHandler, "Section Membership", context);
+	    		handleAction(courseMembershipHandler, "Course Membership", context);
+	    		handleAction(personHandler, "Users", context);
+	    		handleAction(sectionMeetingHandler, "Section Meetings", context);
+	    		handleAction(sectionHandler, "Sections", context);
+	    		handleAction(enrollmentSetHandler, "Enrollment Sets", context);
+	    		handleAction(courseSetHandler, "Course Sets", context);
+	    		handleAction(courseOfferingHandler, "Course Offerings", context);
+	    		handleAction(canonicalCourseHandler, "Canonical Courses", context);
+	    		handleAction(accademicSessionHandler, "Sessions", context);
+	    		
+			}else{
+				handleAction(accademicSessionHandler, "Sessions", context);
+				handleAction(courseSetHandler, "Course Sets", context);
+				handleAction(canonicalCourseHandler, "Canonical Courses",
+						context);
+				handleAction(courseOfferingHandler, "Course Offerings", context);
+				handleAction(enrollmentSetHandler, "Enrollment Sets", context);
+				handleAction(sectionHandler, "Sections", context);
+				handleAction(sectionMeetingHandler, "Section Meetings", context);
+				handleAction(personHandler, "Users", context);
+				handleAction(courseMembershipHandler, "Course Membership",
+						context);
+				context.getProperties().put(IS_FINAL_ACTION, "true");
+				handleAction(sectionMembershipHandler, "Section Membership",
+						context);
+			}
+    		
 		} finally {
 		    boolean success = true;
 		    String isBatchOk = context.getProperties().get(IS_BATCH_OK);

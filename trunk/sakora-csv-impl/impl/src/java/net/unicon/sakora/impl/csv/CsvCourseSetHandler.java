@@ -43,22 +43,31 @@ public class CsvCourseSetHandler extends CsvHandlerBase {
     public String getName() {
         return "CourseSet";
     }
-
-	@Override
+    
+    
+    @Override
 	protected void readInputLine(CsvSyncContext context, String[] line) {
+		if(commonHandlerService.deleteMode()){
+			this.delete(line);
+		}else{
+			this.saveOrUpdate(context, line);
+		}
+	}
 
+	private void saveOrUpdate(CsvSyncContext context, String[] line) {
+	
 		final int minFieldCount = 5;
-
+	
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-
+	
 			// for clarity
 			String eid = line[0];
 			String title = line[1];
 			String description = line[2];
 			String category = line[3];
 			String parentEid = line[4];
-
+	
 			if (!isValid(title, "Title", eid)
 					|| !isValid(description, "Description", eid)) {
 				log.error("Missing required parameter(s), skipping item " + eid);
@@ -77,6 +86,38 @@ public class CsvCourseSetHandler extends CsvHandlerBase {
 			else {
 				cmAdmin.createCourseSet(eid, title, description, category, parentEid);
 				adds++;
+			}
+		} else {
+			log.error("Skipping short line (expected at least [" + minFieldCount + 
+					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
+			errors++;
+		}
+	}
+
+	@SuppressWarnings("unused")
+	private void delete(String[] line){
+	
+		final int minFieldCount = 5;
+	
+		if (line != null && line.length >= minFieldCount) {
+			line = trimAll(line);
+	
+			// for clarity
+			String eid = line[0];
+			String title = line[1];
+			String description = line[2];
+			String category = line[3];
+			String parentEid = line[4];
+	
+			if (!isValid(title, "Title", eid)
+					|| !isValid(description, "Description", eid)) {
+				log.error("Missing required parameter(s), skipping item " + eid);
+				errors++;
+			}
+			else if(cmService.isCourseSetDefined(eid)) {
+				cmAdmin.removeCourseSet(eid);
+				deletes++;
+				if (log.isDebugEnabled()) log.debug("Deleted course set ("+eid+")");
 			}
 		} else {
 			log.error("Skipping short line (expected at least [" + minFieldCount + 

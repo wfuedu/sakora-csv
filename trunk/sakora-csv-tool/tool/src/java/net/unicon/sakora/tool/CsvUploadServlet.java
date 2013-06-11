@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -35,7 +36,6 @@ import net.unicon.sakora.api.csv.CsvSyncService;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.quartz.JobDetail;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -91,6 +91,7 @@ public class CsvUploadServlet extends HttpServlet {
     private static final String OVERRIDE_USER_REMOVAL_MODE = "userRemovalMode";
     private static final String OVERRIDE_IGNORE_MEMBERSHIP_REMOVALS = "ignoreMembershipRemovals";
     private static final String OVERRIDE_IGNORE_MISSING_SESSIONS = "ignoreMissingSessions";
+    private static final String DELETE_MODE = "deleteMode";
 
     static final Log log = LogFactory.getLog(CsvUploadServlet.class);
 
@@ -134,6 +135,20 @@ public class CsvUploadServlet extends HttpServlet {
 		            runJob = true;
 		        }
 		    }
+		    else if ( (DELETE_MODE.equals(part.getName()) 
+                    ) && part.isParam()) {
+                // delete mode is on, so do the ignore flags
+                ParamPart paramPart = (ParamPart) part;
+                String val = paramPart.getStringValue();
+                jobOverrides.put(part.getName(), val);
+                log.info("SakoraCSV: POST param "+part.getName()+" set to override to "+val+" for this sync job. Turn on the ignore flags as well...");
+		        jobOverrides.put(OVERRIDE_IGNORE_MISSING_SESSIONS, "true");
+		        log.info("SakoraCSV: POST param "+part.getName()+" set to override to "+val+" for this sync job");
+		        jobOverrides.put(OVERRIDE_IGNORE_MEMBERSHIP_REMOVALS, "true");
+		        log.info("SakoraCSV: POST param "+part.getName()+" set to override to "+val+" for this sync job");
+		        jobOverrides.put(OVERRIDE_USER_REMOVAL_MODE, "ignore");
+		        log.info("SakoraCSV: POST param "+part.getName()+" set to override to "+val+" for this sync job");
+            }
 		    else if ( (OVERRIDE_IGNORE_MISSING_SESSIONS.equals(part.getName()) 
 		            || OVERRIDE_IGNORE_MEMBERSHIP_REMOVALS.equals(part.getName())
 		            ) && part.isParam()) {
@@ -150,7 +165,7 @@ public class CsvUploadServlet extends HttpServlet {
                 String val = paramPart.getStringValue();
                 jobOverrides.put(part.getName(), val);
                 log.info("SakoraCSV: POST param "+part.getName()+" set to override to "+val+" for this sync job");
-            }
+            }            
 		    else if (part.isFile()) {
 		        UserDirectoryService userDirectoryService = (UserDirectoryService) ComponentManager.get("org.sakaiproject.user.api.UserDirectoryService");
 		        SecurityService securityService = (SecurityService) ComponentManager.get("org.sakaiproject.authz.api.SecurityService");
@@ -224,22 +239,25 @@ public class CsvUploadServlet extends HttpServlet {
 	
 		if (scheduler != null) {
 			JobBeanWrapper jobWrapper = schedulerManager.getJobBeanWrapper(jobName);
+			String triggerId = UUID.randomUUID()+"";
 			if (jobWrapper != null) {
 				try {
-					JobDetail jd = scheduler.getJobDetail(jobName, Scheduler.DEFAULT_GROUP);
-					if (jd == null) {
-						jd = new JobDetail(jobName, Scheduler.DEFAULT_GROUP, jobWrapper.getJobClass(), false, true, true);
-					}
+					//JobDetail jd = scheduler.getJobDetail(jobName, Scheduler.DEFAULT_GROUP);
+					
+					JobDetail jd = new JobDetail(jobName, triggerId, jobWrapper.getJobClass(), false, true, true);
+					
 					jd.getJobDataMap().put(JobBeanWrapper.SPRING_BEAN_NAME, jobWrapper.getBeanId());
 					jd.getJobDataMap().put(JobBeanWrapper.JOB_TYPE, jobWrapper.getJobType());
+					// remove any overrides
+					    jd.getJobDataMap().remove(OVERRIDE_IGNORE_MISSING_SESSIONS);
+					    jd.getJobDataMap().remove(OVERRIDE_IGNORE_MEMBERSHIP_REMOVALS);
+					    jd.getJobDataMap().remove(OVERRIDE_USER_REMOVAL_MODE);
+					    jd.getJobDataMap().remove(DELETE_MODE);
 					if (jobOverrides != null && !jobOverrides.isEmpty()) {
 						if (log.isDebugEnabled()) log.debug("SakoraCSV inserting "+jobOverrides.size()+" job overrides into job data map: "+jobOverrides);
 						jd.getJobDataMap().putAll(jobOverrides);
 					} else {
-					    // remove any overrides
-					    jd.getJobDataMap().remove(OVERRIDE_IGNORE_MISSING_SESSIONS);
-					    jd.getJobDataMap().remove(OVERRIDE_IGNORE_MEMBERSHIP_REMOVALS);
-					    jd.getJobDataMap().remove(OVERRIDE_USER_REMOVAL_MODE);
+					    
 					}
 					scheduler.addJob(jd, true); // need to always update the job details
 				} catch (SchedulerException e) {
@@ -252,7 +270,7 @@ public class CsvUploadServlet extends HttpServlet {
 			}
 
 			try {
-				scheduler.triggerJob(jobName, Scheduler.DEFAULT_GROUP);
+				scheduler.triggerJob(jobName, triggerId);
 			} catch (SchedulerException e) {
 			    log.error("SakoraCSV failed to trigger schedule job from POST request (aborting sync): "+e, e);
 			}

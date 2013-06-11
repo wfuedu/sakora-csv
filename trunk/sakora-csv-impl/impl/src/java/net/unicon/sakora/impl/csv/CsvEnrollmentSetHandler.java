@@ -44,15 +44,24 @@ public class CsvEnrollmentSetHandler extends CsvHandlerBase {
     public String getName() {
         return "EnrollmentSet";
     }
-
-	@Override
+    
+    
+    @Override
 	protected void readInputLine(CsvSyncContext context, String[] line) {
+		if(commonHandlerService.deleteMode()){
+			this.delete(line);
+		}else{
+			this.saveOrUpdate(context, line);
+		}
+	}
 
+	private void saveOrUpdate(CsvSyncContext context, String[] line) {
+	
 		final int minFieldCount = 6;
-
+	
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-
+	
 			// for clarity
 			String eid = line[0];
 			String title = line[1];
@@ -60,7 +69,7 @@ public class CsvEnrollmentSetHandler extends CsvHandlerBase {
 			String category = line[3];
 			String courseOfferingEid = line[4];
 			String defaultEnrollmentCredits = line[5];
-
+	
 			if (!isValid(title, "Title", eid)
 					|| !isValid(description, "Description", eid)
 					|| !isValid(courseOfferingEid, "Course Offering Eid", eid)) {
@@ -90,6 +99,48 @@ public class CsvEnrollmentSetHandler extends CsvHandlerBase {
 					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
 			errors++;
 		}
+	}
+
+	@SuppressWarnings("unused")
+	private void delete(String[] line){
+	
+	
+		final int minFieldCount = 6;
+	
+		if (line != null && line.length >= minFieldCount) {
+			line = trimAll(line);
+	
+			// for clarity
+			String eid = line[0];
+			String title = line[1];
+			String description = line[2];
+			String category = line[3];
+			String courseOfferingEid = line[4];
+			String defaultEnrollmentCredits = line[5];
+	
+			if (!isValid(title, "Title", eid)
+					|| !isValid(description, "Description", eid)
+					|| !isValid(courseOfferingEid, "Course Offering Eid", eid)) {
+				log.error("Missing required parameter(s), skipping item " + eid);
+				errors++;
+			} else {
+				if (cmService.isEnrollmentSetDefined(eid)) {
+					EnrollmentSet enrollment = cmService.getEnrollmentSet(eid);
+					cmService.getEnrollments(eid).remove(enrollment);
+					cmAdmin.removeEnrollmentSet(eid);
+					deletes++;
+					if (log.isDebugEnabled())
+						log.debug("Removed enrollment set (" + eid
+								+ ") from the current list.");
+				}
+	
+			}
+		} else {
+			log.error("Skipping short line (expected at least [" + minFieldCount + 
+					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
+			errors++;
+		}
+	
 	}
 
 	@Override

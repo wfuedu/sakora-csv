@@ -51,22 +51,31 @@ public class CsvEnrollmentHandler extends CsvHandlerBase {
     public String getName() {
         return "Enrollment";
     }
-
-	@Override
+    
+    
+    @Override
 	protected void readInputLine(CsvSyncContext context, String[] line) {
-
+		if(commonHandlerService.deleteMode()){
+    		this.delete(line);
+    	}else{
+    		this.saveOrUpdate(context, line);
+    	}
+	}
+	
+	private void saveOrUpdate(CsvSyncContext context, String[] line) {
+	
 		final int minFieldCount = 5;
-
+	
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-
+	
 			// for clarity
 			String eid = line[0];
 			String userEid = line[1];
 			String status = line[2];
 			String credits = line[3];
 			String gradingScheme = line[4];
-
+	
 			if (!isValid(userEid, "User Eid", eid)
 					|| !isValid(status, "Status", eid)) {
 				log.error("Missing required parameter(s), skipping item " + eid);
@@ -92,7 +101,59 @@ public class CsvEnrollmentHandler extends CsvHandlerBase {
 			errors++;
 		}
 	}
+
+	@SuppressWarnings("unused")
+	private void delete(String[] line){
 	
+		final int minFieldCount = 5;
+	
+		if (line != null && line.length >= minFieldCount) {
+			line = trimAll(line);
+	
+			// for clarity
+			String eid = line[0];
+			String userEid = line[1];
+			String status = line[2];
+			String credits = line[3];
+			String gradingScheme = line[4];
+	
+			if (!isValid(userEid, "User Eid", eid)
+					|| !isValid(status, "Status", eid)) {
+				log.error("Missing required parameter(s), skipping item " + eid);
+				errors++;
+			} else {
+				if (!cmService.isEnrollmentSetDefined(eid)) {
+					log.error("Invalid EnrollmentSet Eid " + eid);
+					dao.create(new SakoraLog(this.getClass().toString(),
+							"Invalid EnrollmentSet Eid " + eid));
+				} else {
+					cmAdmin.removeEnrollment(userEid, eid);
+
+					Search search = new Search();
+					search.addRestriction(new Restriction("userEid", userEid,
+							Restriction.EQUALS));
+					search.addRestriction(new Restriction("containerEid", eid,
+							Restriction.EQUALS));
+					search.setLimit(searchPageSize);
+					List<Membership> memberships = dao.findBySearch(
+							Membership.class, search);
+					for (Membership membership : memberships) {
+						dao.delete(membership);
+						deletes++;
+						if (log.isDebugEnabled())
+							log.debug("Deleted enrollment for user (" + userEid
+									+ ") in enrollment set (" + eid + ")");
+					}
+				}
+			   
+			}
+		} else {
+			log.error("Skipping short line (expected at least [" + minFieldCount + 
+					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
+			errors++;
+		}
+	}
+
 	@Override
 	protected void processInternal(CsvSyncContext context) {
 	    if (commonHandlerService.ignoreMembershipRemovals()) {

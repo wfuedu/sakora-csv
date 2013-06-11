@@ -77,15 +77,25 @@ public class CsvPersonHandler extends CsvHandlerBase {
     public String getName() {
         return "Person";
     }
-
-	@Override
+    
+    @Override
 	protected void readInputLine(CsvSyncContext context, String[] line) {
+		if(commonHandlerService.deleteMode()){
+    		this.delete(line);
+    	}else{
+    		this.saveOrUpdate(context, line);
+    	}
 
+		
+	}
+
+	
+    private void saveOrUpdate(CsvSyncContext context, String[] line) {
 		final int minFieldCount = 6;
-
+	
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-
+	
 			// for clarity
 			String eid = line[0];
 			String lastName = line[1];
@@ -94,20 +104,20 @@ public class CsvPersonHandler extends CsvHandlerBase {
 			String pw = line[4];
 			String type = line[5];
 			Map<String,String> optionalFields = getOptionalFields(line, 6);
-
+	
 			String existingId = null;
 			String newId = null;
-
+	
 			// why doesn't UserDirectoryService have a userExists type method?
 			try {
 				existingId = userDirService.getUserId(eid);
 			} catch (UserNotDefinedException unde) {
 			    // empty on purpose
 			}
-
+	
 			try {
 				UserEdit edit = null;
-
+	
 				boolean changed = false;
 				if (existingId == null || "".equals(existingId)) {
 					if ( optionalFields.containsKey(ID_FIELD_NAME) ) {
@@ -148,7 +158,7 @@ public class CsvPersonHandler extends CsvHandlerBase {
 					    changed = true;
 					}
 				}
-
+	
 				if ( !(optionalFields.isEmpty()) ) {
 					log.debug("Processing optional fields for user with eid [" + eid  + "]: " + optionalFields);
 					for ( String fieldName: optionalFields.keySet() ) {
@@ -170,7 +180,7 @@ public class CsvPersonHandler extends CsvHandlerBase {
 						}
 					}
 				}
-
+	
 				if (changed) {
 				    userDirService.commitEdit(edit);
 				    if (existingId == null) {
@@ -208,7 +218,7 @@ public class CsvPersonHandler extends CsvHandlerBase {
 				log.error("CsvPersonHandler: CsvPersonHandler: " + upe.getMessage());
 				errors++;
 			}
-
+	
 			// Log users read in for delta calculation, update existing and create new
 			// dao.save(new Person(eid, (existingId == null ? newId : existingId), time));
 			Person p = dao.findById(Person.class, eid);
@@ -224,6 +234,11 @@ public class CsvPersonHandler extends CsvHandlerBase {
 					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
 			errors++;
 		}
+	}
+
+	
+	//TODO: complete the work later
+    private void delete(String[] line){
 	}
 
 	/**
@@ -271,6 +286,8 @@ public class CsvPersonHandler extends CsvHandlerBase {
 		}
 		return namedFields;
 	}
+	
+	
 	
 	@Override
 	protected void processInternal(CsvSyncContext context) {
