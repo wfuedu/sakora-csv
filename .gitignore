@@ -5,9 +5,9 @@
 *.pydevproject
 .project
 .metadata
-bin/
+**/bin/
 tmp/
-target/
+**/target/
 *.tmp
 *.bak
 *.swp
@@ -15,6 +15,9 @@ target/
 .classpath
 .settings/
 .loadpath
+.class
+.jar
+.war
 
 # External tool builders
 .externalToolBuilders/
