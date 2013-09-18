@@ -268,7 +268,7 @@ public class CsvMembershipHandler extends CsvHandlerBase {
 		            if (memberships == null || memberships.size() == 0) {
 		                isDone = true;
 		            } else {
-		                s.setStart(search.getStart() + searchPageSize);
+		                s.setStart(s.getStart() + searchPageSize);
 		            }
 		            // should we halt if a stop was requested via pleaseStop?
 		        }
