@@ -51,24 +51,15 @@ public class CsvSectionHandler extends CsvHandlerBase {
     public String getName() {
         return "Section";
     }
-    
-    @Override
+
+	@Override
 	protected void readInputLine(CsvSyncContext context, String[] line) {
-		if(commonHandlerService.deleteMode()){
-			this.delete(line);
-		}else{
-			this.saveOrUpdate(context, line);
-		}
-		
-	}
-	
-	
-	private void saveOrUpdate(CsvSyncContext context, String[] line) {
+
 		final int minFieldCount = 7;
-	
+
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-	
+
 			// for clarity
 			String eid = line[0];
 			String title = line[1];
@@ -77,94 +68,61 @@ public class CsvSectionHandler extends CsvHandlerBase {
 			String parentSectionEid = line[4];
 			String enrollmentSetEid = line[5];
 			String courseOfferingEid = line[6];
-	
+
 			if (!isValid(title, "Title", eid)
 					|| !isValid(description, "Description", eid)
 					|| !isValid(courseOfferingEid, "Course Offering Eid", eid)) {
 				log.error("Missing required parameter(s), skipping item " + eid);
 				errors++;
 			} else {
-					 if (commonHandlerService.processCourseOffering(courseOfferingEid)) {
-					        // moved the category logic in here because it really should not run unless the line is valid
-					        if ( category == null || cmService.getSectionCategoryDescription(category) == null ) {
-					            boolean createCategory = true;
-					            if ( category == null ) {
-					                category = defaultSectionCategoryCode;
-					                createCategory = cmService.getSectionCategoryDescription(category) == null;
-					            }
-					            if ( createCategory ) {
-					                String categoryDescription =  sectionCategoryMap.get(category);
-					                categoryDescription = categoryDescription == null ? category : categoryDescription;
-					                if ( log.isDebugEnabled() ) {
-					                    log.debug("Creating section category, code: [" + category + 
-					                            "], desc: [" + categoryDescription + "]");
-					                }
-					                cmAdmin.addSectionCategory(category, categoryDescription);
-					            }
-					        }
-	
-					        if (cmService.isSectionDefined(eid)) {
-					            Section section = cmService.getSection(eid);
-					            section.setTitle(title);
-					            section.setDescription(description);
-					            section.setCategory(category);
-					            Section parent = null;
-					            if (cmService.isSectionDefined(parentSectionEid)) {
-					                parent = cmService.getSection(parentSectionEid);
-					            }
-					            section.setParent(parent);
-					            if (cmService.isEnrollmentSetDefined(enrollmentSetEid)) {
-					                section.setEnrollmentSet(cmService.getEnrollmentSet(enrollmentSetEid));
-					            }
-					            cmAdmin.updateSection(section);
-					            updates++;
-					        } else {
-					            cmAdmin.createSection(eid, title, description, category, parentSectionEid, courseOfferingEid, enrollmentSetEid);
-					            adds++;
-					        }
-					        int total = commonHandlerService.addCurrentSection(eid);
-					        if (log.isDebugEnabled()) log.debug("Added section ("+eid+") to the current list: "+total);
-					    } else {
-					        if (log.isDebugEnabled()) log.debug("Skipped processing course section ("+eid+") because it is in an offering ("+courseOfferingEid+") which is part of an academic session which is being skipped");
-					    }
-							   
+			    if (commonHandlerService.processCourseOffering(courseOfferingEid)) {
+			        // moved the category logic in here because it really should not run unless the line is valid
+			        if ( category == null || cmService.getSectionCategoryDescription(category) == null ) {
+			            boolean createCategory = true;
+			            if ( category == null ) {
+			                category = defaultSectionCategoryCode;
+			                createCategory = cmService.getSectionCategoryDescription(category) == null;
+			            }
+			            if ( createCategory ) {
+			                String categoryDescription =  sectionCategoryMap.get(category);
+			                categoryDescription = categoryDescription == null ? category : categoryDescription;
+			                if ( log.isDebugEnabled() ) {
+			                    log.debug("Creating section category, code: [" + category + 
+			                            "], desc: [" + categoryDescription + "]");
+			                }
+			                cmAdmin.addSectionCategory(category, categoryDescription);
+			            }
+			        }
+
+			        if (cmService.isSectionDefined(eid)) {
+			            Section section = cmService.getSection(eid);
+			            section.setTitle(title);
+			            section.setDescription(description);
+			            section.setCategory(category);
+			            Section parent = null;
+			            if (cmService.isSectionDefined(parentSectionEid)) {
+			                parent = cmService.getSection(parentSectionEid);
+			            }
+			            section.setParent(parent);
+			            if (cmService.isEnrollmentSetDefined(enrollmentSetEid)) {
+			                section.setEnrollmentSet(cmService.getEnrollmentSet(enrollmentSetEid));
+			            }
+			            cmAdmin.updateSection(section);
+			            updates++;
+			        } else {
+			            cmAdmin.createSection(eid, title, description, category, parentSectionEid, courseOfferingEid, enrollmentSetEid);
+			            adds++;
+			        }
+			        int total = commonHandlerService.addCurrentSection(eid);
+			        if (log.isDebugEnabled()) log.debug("Added section ("+eid+") to the current list: "+total);
+			    } else {
+			        if (log.isDebugEnabled()) log.debug("Skipped processing course section ("+eid+") because it is in an offering ("+courseOfferingEid+") which is part of an academic session which is being skipped");
+			    }
 			}
 		} else {
 			log.error("Skipping short line (expected at least [" + minFieldCount + 
 					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
 			errors++;
-		}
-	}
-
-	@SuppressWarnings("unused")
-	private void delete( String[] line){
-		String eid = line[0];
-		String title = line[1];
-		String description = line[2];
-		String category = line[3];
-		String parentSectionEid = line[4];
-		String enrollmentSetEid = line[5];
-		String courseOfferingEid = line[6];
-	
-		if (!isValid(title, "Title", eid)
-				|| !isValid(description, "Description", eid)
-				|| !isValid(courseOfferingEid, "Course Offering Eid", eid)) {
-			log.error("Missing required parameter(s), skipping item " + eid);
-			errors++;
-		} else {
-			// TODO: remove secion category
-			if (cmService.isSectionDefined(eid)) {
-				cmAdmin.removeSection(eid);
-				deletes++;
-				if (log.isDebugEnabled())
-					log.debug("Deleted section (" + eid
-							+ ") from the current list.");
-			} else {
-				if (log.isDebugEnabled())
-					log.debug("Unable to Deleted section (" + eid
-							+ ") from the current list");
-			}
-	
 		}
 	}
 

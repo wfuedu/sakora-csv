@@ -62,23 +62,15 @@ public class CsvMembershipHandler extends CsvHandlerBase {
     public String getName() {
         return MODE_SECTION.equals(mode) ? "SectionMembership" : "CourseMembership";
     }
-    
-    
-    @Override
-	protected void readInputLine(CsvSyncContext context, String[] line) {
-		if(commonHandlerService.deleteMode()){
-    		this.delete(line);
-    	}else{
-    		this.saveOrUpdate(context, line);
-    	}		
-	}
 
-	private void saveOrUpdate(CsvSyncContext context, String[] line){
+	@Override
+	protected void readInputLine(CsvSyncContext context, String[] line) {
+		
 		final int minFieldCount = 4;
-	
+
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-	
+
 			// for clarity
 			String eid = line[0];
 			String userEid = line[1];
@@ -92,7 +84,7 @@ public class CsvMembershipHandler extends CsvHandlerBase {
 			if (line.length > 5 && line[5] != null) {
 				gradingScheme = line[5];
 			}
-	
+
 			try {
 				if (!isValid(userEid, "User Eid", eid)
 						|| !isValid(role, "Role", eid)
@@ -104,11 +96,11 @@ public class CsvMembershipHandler extends CsvHandlerBase {
 				    if (commonHandlerService.processSection(eid)) {
 				        Section section = cmService.getSection(eid);
 				        EnrollmentSet enrolled = section.getEnrollmentSet();
-	
+
 				        if (enrolled == null) {
 				            // no enrollment set yet - create one
 				            String esEid = section.getEid() + "_ES";
-	
+
 				            if ( log.isDebugEnabled() ) {
 				                log.debug("Section [" + section.getEid() + "] has no enrollment set, creating one with eid [" + esEid + "]");
 				            }
@@ -144,7 +136,7 @@ public class CsvMembershipHandler extends CsvHandlerBase {
 				        if (log.isDebugEnabled()) log.debug("Skipped processing membership for user ("+userEid+") in course offering ("+eid+") because it is part of an academic session which is being skipped");
 				    }
 				}
-	
+
 				if (commonHandlerService.ignoreMembershipRemovals()) {
 				    if (log.isDebugEnabled()) log.debug("SakoraCSV skipping sakora membership table update for user ("+userEid+") and "+mode+" ("+eid+") because ignoreMembershipRemovals=true");
 				} else {
@@ -182,72 +174,9 @@ public class CsvMembershipHandler extends CsvHandlerBase {
 		}
 	}
 
-
-	@SuppressWarnings("unused")
-	private void delete(String[] line){
-		
-		final int minFieldCount = 4;
-	
-		if (line != null && line.length >= minFieldCount) {
-			line = trimAll(line);
-	
-			// for clarity
-			String eid = line[0];
-			String userEid = line[1];
-			String role = line[2];
-			String status = line[3];
-			String credits = defaultCredits;
-			if (line.length > 4 && line[4] != null) {
-				credits = line[4];
-			}
-			String gradingScheme = defaultGradingScheme;
-			if (line.length > 5 && line[5] != null) {
-				gradingScheme = line[5];
-			}
-	
-			try {
-				if (!isValid(userEid, "User Eid", eid)
-						|| !isValid(role, "Role", eid)
-						|| !isValid(status, "Status", eid)) {
-					log.error("Missing required parameter(s), skipping item " + eid);
-					errors++;
-				} else if (MODE_SECTION.equals(mode)) {
-					// SECTION MEMBERSHIPS
-					cmAdmin.removeSectionMembership(userEid, eid);
-					Section section = cmService.getSection(eid);
-					EnrollmentSet enrolled = section.getEnrollmentSet();
-					if (enrolled != null) {
-						cmAdmin.removeEnrollmentSet(eid);
-						deletes++;
-						if (log.isDebugEnabled())
-							log.debug("Removed section membership for user ("
-									+ userEid + ") in section (" + eid + ")");
-					}
-				    
-				} else {
-					// COURSE MEMBERSHIPS
-					cmAdmin.addOrUpdateCourseOfferingMembership(userEid, role,
-							eid, status);
-					deletes++; // hard to say if it was an add or an update
-					if (log.isDebugEnabled())
-						log.debug("Removed section membership for user ("
-								+ userEid + ") in section (" + eid + ")");
-				}
-				
-			} catch (IdNotFoundException idfe) {
-				dao.create(new SakoraLog(this.getClass().toString(), idfe.getLocalizedMessage()));
-			}
-		} else {
-			log.error("Skipping short line (expected at least [" + minFieldCount + 
-					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
-			errors++;
-		}
-	}
-
-
 	@Override
 	protected void processInternal(CsvSyncContext context) {
-		if (commonHandlerService.ignoreMembershipRemovals()) {
+	    if (commonHandlerService.ignoreMembershipRemovals()) {
 	        if (log.isDebugEnabled()) log.debug("SakoraCSV skipping "+mode+" membership processing, ignoreMembershipRemovals=true");
 	    } else {
 	        // do removal processing

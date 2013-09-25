@@ -40,24 +40,15 @@ public class CsvCanonicalCourseHandler extends CsvHandlerBase {
     public String getName() {
         return "CanonicalCourse";
     }
-	
+
 	@Override
 	protected void readInputLine(CsvSyncContext context, String[] line) {
-		if(commonHandlerService.deleteMode()){
-			this.delete(line);
-		}else{
-			this.saveOrUpdate(context, line);
-		}
-	}
 
-	
-	private void saveOrUpdate(CsvSyncContext context, String[] line) {
-	
 		final int minFieldCount = 3;
-	
+
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-	
+
 			// for clarity
 			String eid = line[0];
 			String title = line[1];
@@ -65,7 +56,7 @@ public class CsvCanonicalCourseHandler extends CsvHandlerBase {
 			String courseSet = null;
 			if (line.length > 3)
 				courseSet = line[3];
-	
+
 			if (!isValid(title, "Title", eid)
 					|| !isValid(description, "Description", eid)) {
 				log.error("Missing required parameter(s), skipping item " + eid);
@@ -85,40 +76,6 @@ public class CsvCanonicalCourseHandler extends CsvHandlerBase {
 			if (courseSet != null && cmService.isCourseSetDefined(courseSet)) {
 				cmAdmin.addCanonicalCourseToCourseSet(courseSet, eid);
 			}
-		} else {
-			log.error("Skipping short line (expected at least [" + minFieldCount + 
-					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
-			errors++;
-		}
-	}
-	
-	private void delete(String[] line){
-	
-		final int minFieldCount = 3;
-	
-		if (line != null && line.length >= minFieldCount) {
-			line = trimAll(line);
-	
-			// for clarity
-			String eid = line[0];
-			String title = line[1];
-			String description = line[2];
-			String courseSet = null;
-			if (line.length > 3)
-				courseSet = line[3];
-	
-			if (!isValid(title, "Title", eid)
-					|| !isValid(description, "Description", eid)) {
-				log.error("Missing required parameter(s), skipping item " + eid);
-				errors++;
-			}
-			else if (cmService.isCanonicalCourseDefined(eid)) {
-				cmAdmin.removeCanonicalCourseFromCourseSet(courseSet, eid);
-				cmAdmin.removeCanonicalCourse(eid);
-				deletes++;
-				if (log.isDebugEnabled()) log.debug("Deleted Canonical course ("+eid+")");
-			}		
-			
 		} else {
 			log.error("Skipping short line (expected at least [" + minFieldCount + 
 					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");

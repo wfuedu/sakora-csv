@@ -175,7 +175,6 @@ public abstract class CsvHandlerBase implements CsvHandler {
 	 * @param context the sync context
 	 * @return true if the file was read successfully, false otherwise
 	 */
-	@SuppressWarnings("unused")
 	protected boolean setup(CsvSyncContext context) {
 		/* intentionally avoid storing this as an instance member to
 		 * try to get away from storing processing state in singleton beans

@@ -47,30 +47,22 @@ public class CsvAcademicSessionHandler extends CsvHandlerBase {
 	public String getName() {
 	    return "AcademicSession";
 	}
-	
+
 	@Override
 	protected void readInputLine(CsvSyncContext context, String[] line) {
-		if(commonHandlerService.deleteMode()){
-			this.delete(line);
-		}else{
-			this.saveOrUpdate(context, line);
-		}
-	}
-	
-	private void saveOrUpdate(CsvSyncContext context, String[] line) {
 		
 		final int minFieldCount = 5;
-	
+
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-	
+
 			// for clarity
 			String eid = line[0];
 			String title = line[1];
 			String description = line[2];
 			Date startDate = parseDate(line[3]);
 			Date endDate = parseDate(line[4]);
-	
+
 			if (!isValid(title, "Title", eid)
 					|| !isValid(description, "Description", eid)
 					|| !isValid(startDate, "Start Date", eid)
@@ -106,46 +98,7 @@ public class CsvAcademicSessionHandler extends CsvHandlerBase {
 			errors++;
 		}
 	}
-
-	private void delete(String[] line){
-		
-		final int minFieldCount = 5;
 	
-		if (line != null && line.length >= minFieldCount) {
-			line = trimAll(line);
-	
-			// for clarity
-			String eid = line[0];
-			String title = line[1];
-			String description = line[2];
-			Date startDate = parseDate(line[3]);
-			Date endDate = parseDate(line[4]);
-	
-			if (!isValid(title, "Title", eid)
-					|| !isValid(description, "Description", eid)
-					|| !isValid(startDate, "Start Date", eid)
-					|| !isValid(endDate, "End Date", eid)) {
-				log.error("SakoraCSV Missing required parameter(s), skipping item " + eid);
-				errors++;
-			}
-			else if (cmService.isAcademicSessionDefined(eid)) {				
-				cmAdmin.removeAcademicSession(eid);
-				deletes++;
-			}
-			Search search = new Search();
-			search.addRestriction(new Restriction("eid", eid));
-			Session existing = dao.findOneBySearch(Session.class, search);
-			if (existing != null) {
-				dao.delete(existing);				
-			} 
-			if (log.isDebugEnabled()) log.debug("Deleted Academic session ("+eid+")");
-		} else {
-			log.error("SakoraCSV Skipping short line (expected at least [" + minFieldCount + 
-					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
-			errors++;
-		}
-	}
-
 	@Override
 	protected void processInternal(CsvSyncContext context) {
 		loginToSakai();

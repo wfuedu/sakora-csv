@@ -44,24 +44,15 @@ public class CsvCourseOfferingHandler extends CsvHandlerBase {
     public String getName() {
         return "CourseOffering";
     }
-    
-    
-    @Override
-	protected void readInputLine(CsvSyncContext context, String[] line) {
-		if(commonHandlerService.deleteMode()){
-			this.delete(line);
-		}else{
-			this.saveOrUpdate(context, line);
-		}
-	}
 
-	private void saveOrUpdate(CsvSyncContext context, String[] line) {
-	
+	@Override
+	protected void readInputLine(CsvSyncContext context, String[] line) {
+
 		final int minFieldCount = 7;
-	
+
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-	
+
 			// for clarity
 			String eid = line[0];
 			String sessionEid = line[1];
@@ -85,13 +76,13 @@ public class CsvCourseOfferingHandler extends CsvHandlerBase {
 			if (line.length > 8) {
 				courseSet = line[8];
 			}
-	
+
 			if (!isValid(startDate, "Start Date", eid)
 					|| !isValid(endDate, "End Date", eid)
 					|| !isValid(sessionEid, "Session Eid", eid)) {
 				log.error("Missing required parameter(s), skipping item " + eid);
 				errors++;
-	
+
 			} else {
 			    if (commonHandlerService.processAcademicSession(sessionEid)) {
 			        if (cmService.isCourseOfferingDefined(eid)) {
@@ -123,64 +114,6 @@ public class CsvCourseOfferingHandler extends CsvHandlerBase {
 		    errors++;
 		}
 	}
-
-
-	@SuppressWarnings("unused")
-	private void delete(String[] line){
-	
-		final int minFieldCount = 7;
-	
-		if (line != null && line.length >= minFieldCount) {
-			line = trimAll(line);
-	
-			// for clarity
-			String eid = line[0];
-			String sessionEid = line[1];
-			String title = line[2];
-			String description = line[3];
-			String status = line[4];
-			Date startDate = parseDate(line[5]);
-			Date endDate = parseDate(line[6]);
-			String canonicalCourseEid = null;
-			if ( line.length > 7 ) {
-				if ( handleCanonicalCourseReferences ) {
-					canonicalCourseEid = line[7];
-				} else {
-					if ( log.isDebugEnabled() ) {
-						log.debug("Course offering arrived with a canonical course reference of [" + 
-								line[7] + "] but canonical course reference handling has been disabled");
-					}
-				}
-			}
-			String courseSet = null;
-			if (line.length > 8) {
-				courseSet = line[8];
-			}
-	
-			if (!isValid(startDate, "Start Date", eid)
-					|| !isValid(endDate, "End Date", eid)
-					|| !isValid(sessionEid, "Session Eid", eid)) {
-				log.error("Missing required parameter(s), skipping item " + eid);
-				errors++;
-	
-			} else {
-				if (cmService.isCourseOfferingDefined(eid)) {
-					cmAdmin.removeCourseOfferingFromCourseSet(courseSet, eid);
-					cmAdmin.removeCourseOffering(eid);
-					deletes++;
-					if (log.isDebugEnabled())
-						log.debug("Removed course offering (" + eid
-								+ ") from the current list. ");
-				}
-
-			}
-		} else {
-		    log.error("Skipping short line (expected at least [" + minFieldCount + 
-		            "] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
-		    errors++;
-		}
-	}
-
 
 	@Override
 	protected void processInternal(CsvSyncContext context) {

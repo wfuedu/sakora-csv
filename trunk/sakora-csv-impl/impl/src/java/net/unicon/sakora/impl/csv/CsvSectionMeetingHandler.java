@@ -44,24 +44,15 @@ public class CsvSectionMeetingHandler extends CsvHandlerBase {
     public String getName() {
         return "SectionMeeting";
     }
-    
-    @Override
-	protected void readInputLine(CsvSyncContext context, String[] line) {
-		if(commonHandlerService.deleteMode()){
-			this.delete(line);
-		}else{
-			this.saveOrUpdate(context, line);
-		}
-		
-	}
 
-	
-    private void saveOrUpdate(CsvSyncContext context, String[] line){
+	@Override
+	protected void readInputLine(CsvSyncContext context, String[] line) {
+		
 		final int minFieldCount = 6;
-	
+
 		if (line != null && line.length >= minFieldCount) {
 			line = trimAll(line);
-	
+
 			// for clarity
 			String eid = line[0]; // section EID
 			String location = line[1];
@@ -72,7 +63,7 @@ public class CsvSectionMeetingHandler extends CsvHandlerBase {
 				startTime = Time.valueOf(line[3]);
 				endTime = Time.valueOf(line[4]);
 			}
-	
+
 			if (!isValid(location, "Location", eid)
 					|| !isValid(startTime, "Start Time", eid)
 					|| !isValid(endTime, "End Time", eid)) {
@@ -100,11 +91,6 @@ public class CsvSectionMeetingHandler extends CsvHandlerBase {
 					"] fields): [" + (line == null ? null : Arrays.toString(line)) + "]");
 			errors++;
 		}
-	}
-
-	//TODO: complete the delete logic
-	private void delete(String[] line){
-		
 	}
 
 	@Override
